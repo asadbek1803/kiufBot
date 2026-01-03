@@ -1,8 +1,8 @@
 from aiogram import Router, types
 from aiogram.filters.command import Command
-from config.models.user import User
-from config.schemas.language import LanguageEnum
-from config.utils.i18n import get_text
+from models.user import User
+from schemas.language import LanguageEnum
+from utils.i18n import get_text
 
 router = Router()
 

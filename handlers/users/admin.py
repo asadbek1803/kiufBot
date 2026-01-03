@@ -13,8 +13,8 @@ from keyboards.inline.buttons import are_you_sure_markup, get_admin_menu_markup,
 from states.test import AdminState
 from filters.admin import IsBotAdminFilter
 from data.config import ADMINS
-from config.utils.pgtoexcel import export_to_excel
-from config.models.user import User
+from utils.pgtoexcel import export_to_excel
+from models.user import User
 
 router = Router()
 

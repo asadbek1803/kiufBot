@@ -1,7 +1,7 @@
 """Internationalization (i18n) utilities for multilingual support"""
 
 from typing import Dict
-from config.schemas.language import LanguageEnum
+from schemas.language import LanguageEnum
 
 # Translation dictionary
 TRANSLATIONS: Dict[str, Dict[LanguageEnum, str]] = {

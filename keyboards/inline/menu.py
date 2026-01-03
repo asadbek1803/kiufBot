@@ -1,8 +1,8 @@
 """Menu keyboards for the bot"""
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
-from config.schemas.language import LanguageEnum
-from config.utils.i18n import get_text
+from schemas.language import LanguageEnum
+from utils.i18n import get_text
 
 
 def get_main_menu_keyboard(language: LanguageEnum = LanguageEnum.UZ) -> InlineKeyboardMarkup:

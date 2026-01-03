@@ -1,6 +1,6 @@
 from tortoise.models import Model
 from tortoise import fields
-from config.schemas.language import LanguageEnum
+from schemas.language import LanguageEnum
 
 
 class User(Model):

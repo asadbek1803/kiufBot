@@ -2,11 +2,11 @@ from aiogram import Router, types
 from aiogram.filters import CommandStart
 from aiogram.client.session.middlewares.request_logging import logger
 from loader import bot
-from config.models.user import User
-from config.schemas.language import LanguageEnum
-from config.utils.i18n import get_text
-from config.keyboards.inline.menu import get_main_menu_keyboard, get_language_keyboard
-from config.utils.notify_new_user import notify_admins_new_user
+from models.user import User
+from schemas.language import LanguageEnum
+from utils.i18n import get_text
+from keyboards.inline.menu import get_main_menu_keyboard, get_language_keyboard
+from utils.notify_new_user import notify_admins_new_user
 
 router = Router()
 

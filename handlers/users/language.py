@@ -1,10 +1,10 @@
 """Language selection handlers"""
 
 from aiogram import Router, types, F
-from config.models.user import User
-from config.schemas.language import LanguageEnum
-from config.utils.i18n import get_text
-from config.keyboards.inline.menu import get_main_menu_keyboard, get_language_keyboard, get_admission_submenu_keyboard
+from models.user import User
+from schemas.language import LanguageEnum
+from utils.i18n import get_text
+from keyboards.inline.menu import get_main_menu_keyboard, get_language_keyboard, get_admission_submenu_keyboard
 
 router = Router()
 

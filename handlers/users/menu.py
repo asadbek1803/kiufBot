@@ -4,12 +4,12 @@ import logging
 from aiogram import Router, types, F
 from aiogram.fsm.context import FSMContext
 from loader import bot
-from config.models.user import User
-from config.schemas.language import LanguageEnum
-from config.utils.i18n import get_text
-from config.utils.ukiu_scraper import scraper
-from config.keyboards.inline.menu import get_main_menu_keyboard, get_back_to_menu_keyboard, get_admission_submenu_keyboard, get_back_to_admission_menu_keyboard
-from config.keyboards.inline.buttons import get_reply_user_markup
+from models.user import User
+from schemas.language import LanguageEnum
+from utils.i18n import get_text
+from utils.ukiu_scraper import scraper
+from keyboards.inline.menu import get_main_menu_keyboard, get_back_to_menu_keyboard, get_admission_submenu_keyboard, get_back_to_admission_menu_keyboard
+from keyboards.inline.buttons import get_reply_user_markup
 from states.test import UserState
 from data.config import ADMINS
 
