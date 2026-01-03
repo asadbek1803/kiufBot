@@ -7,7 +7,7 @@ TORTOISE_ORM = {
     },
     "apps": {
         "models": {
-            "models": ["config.models.user", "aerich.models"],
+            "models": ["models.user", "aerich.models"],
             "default_connection": "default",
         },
     },
@@ -21,24 +21,23 @@ async def init_db():
     from pathlib import Path
     
     # Ensure root directory is in sys.path for module imports
-    # __file__ is config/utils/db/tortoise.py
-    # parent.parent.parent is root/ (Kiuf bot/)
+    # __file__ is utils/db/tortoise.py, parent.parent.parent is root directory
     root_dir = Path(__file__).parent.parent.parent
     if str(root_dir) not in sys.path:
         sys.path.insert(0, str(root_dir))
     
     # Test if module can be imported
     try:
-        import config.models.user
+        import models.user
     except ImportError as e:
-        raise ImportError(f"Cannot import config.models.user. sys.path: {sys.path[:3]}") from e
+        raise ImportError(f"Cannot import models.user. sys.path: {sys.path[:3]}") from e
     
     # Get database path relative to config directory (where app.py is)
     db_path = Path(__file__).parent.parent / "kiuf_bot.db"
     
     await Tortoise.init(
         db_url=f"sqlite:///{db_path.absolute()}",
-        modules={"models": ["config.models.user"]},
+        modules={"models": ["models.user"]},
     )
     await Tortoise.generate_schemas()
     

@@ -2,12 +2,8 @@ import asyncio
 import sys
 from pathlib import Path
 
-# Ensure the config directory parent (root) is in sys.path for imports
-# When running from config/app.py, __file__ is config/app.py
-# parent is config/, parent.parent is root/
-root_dir = Path(__file__).parent.parent
-if str(root_dir) not in sys.path:
-    sys.path.insert(0, str(root_dir))
+# The app runs from the config directory, so no need to modify sys.path
+# All imports are relative to this directory
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.session.middlewares.request_logging import logger
