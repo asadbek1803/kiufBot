@@ -54,7 +54,7 @@ def get_main_menu_keyboard(language: LanguageEnum = LanguageEnum.UZ) -> InlineKe
         [
             InlineKeyboardButton(
                 text=get_text("btn_developer", language),
-                url="https://t.me/asadbek_074"
+                url="https://t.me/asadbek_dev"
             ),
             InlineKeyboardButton(
                 text=get_text("btn_feedback", language),
