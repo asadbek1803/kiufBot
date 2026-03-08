@@ -1,7 +1,9 @@
 services:
   - type: web
     name: kiufBot
-    env: python
-    pythonVersion: 3.11.0
+    runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python3 app.py
+    startCommand: python app.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12
