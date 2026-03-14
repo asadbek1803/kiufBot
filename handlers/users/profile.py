@@ -1,7 +1,6 @@
 import re
-import requests
 import logging
-import io
+import requests
 from aiogram import Router, types, F
 from aiogram.fsm.context import FSMContext
 from loader import bot
@@ -12,115 +11,177 @@ from schemas.language import LanguageEnum
 from utils.i18n import get_text
 from keyboards.inline.menu import get_profile_menu_keyboard, get_back_to_menu_keyboard
 from states.test import UserState
-from services.hemis_service import get_hemis_captcha, hemis_login, create_session, get_student_group, DASHBOARD_URL, fetch_schedule
-from services.schedule_service import get_or_fetch_schedule, get_current_week, update_cached_week_id
+from services.hemis_service import (
+    get_hemis_captcha,
+    hemis_login,
+    create_session,
+    DASHBOARD_URL,
+    fetch_schedule,
+)
+from services.schedule_service import get_current_week, update_cached_week_id
 from bs4 import BeautifulSoup
 
-
 router = Router()
+logger = logging.getLogger(__name__)
+
+
+# =========================================================
+# PROFIL MENYU
+# =========================================================
 
 @router.callback_query(F.data == "menu_profile")
 async def show_profile_menu(callback: types.CallbackQuery):
-    """Show profile menu"""
     await callback.answer()
-    
-    user = await User.get_or_none(telegram_id=callback.from_user.id).prefetch_related("group")
+
+    user = await User.get_or_none(
+        telegram_id=callback.from_user.id
+    ).prefetch_related("group")
+
     language = user.language if user else LanguageEnum.UZ
-    
+
     group_name = user.group.name if user and user.group else "—"
     hemis_status = "✅" if user and user.hemis_login else "❌"
-    
-    # Strip emojis roughly if needed, otherwise just append
-    profile_text = get_text('btn_profile', language)
-    
-    text = f"<b>{profile_text}</b>\n\n"
-    text += f"ID: <code>{callback.from_user.id}</code>\n"
-    text += f"Group: {group_name}\n"
-    text += f"HEMIS: {hemis_status}"
-    
+
+    text = (
+        f"<b>{get_text('btn_profile', language)}</b>\n\n"
+        f"ID: <code>{callback.from_user.id}</code>\n"
+        f"Guruh: {group_name}\n"
+        f"HEMIS: {hemis_status}"
+    )
+
     await callback.message.edit_text(
         text,
         reply_markup=get_profile_menu_keyboard(language, user),
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
 
+
+# =========================================================
+# 1-QADAM LOGIN SO'RASH
+# =========================================================
 
 @router.callback_query(F.data == "connect_hemis")
 async def start_connect_hemis(callback: types.CallbackQuery, state: FSMContext):
-    """Start HEMIS connection process"""
+
     await callback.answer()
+
     user = await User.get_or_none(telegram_id=callback.from_user.id)
     language = user.language if user else LanguageEnum.UZ
-    
-    await callback.message.edit_text(
+
+    msg = await callback.message.edit_text(
         get_text("enter_hemis_login", language),
-        reply_markup=get_back_to_menu_keyboard(language)
+        reply_markup=get_back_to_menu_keyboard(language),
     )
+
+    await state.update_data(
+        flow_message_id=msg.message_id
+    )
+
     await state.set_state(UserState.waiting_hemis_login)
 
+
+# =========================================================
+# 2-QADAM LOGIN QABUL QILISH
+# =========================================================
 
 @router.message(UserState.waiting_hemis_login)
 async def process_hemis_login(message: types.Message, state: FSMContext):
 
-    user = await User.get_or_none(telegram_id=message.from_user.id)
-    language = user.language if user else LanguageEnum.UZ
+    data = await state.get_data()
 
-    await state.update_data(hemis_login=message.text.strip())
+    login = message.text.strip()
+    flow_msg = data.get("flow_message_id")
 
-    await message.answer(
-        get_text("enter_hemis_password", language),
-        reply_markup=get_back_to_menu_keyboard(language)
+    try:
+        await message.delete()
+    except:
+        pass
+
+    try:
+        await bot.delete_message(message.chat.id, flow_msg)
+    except:
+        pass
+
+    await state.update_data(
+        hemis_login=login
+    )
+
+    ask_password = await message.answer("🔐 HEMIS parolini kiriting:")
+
+    await state.update_data(
+        flow_message_id=ask_password.message_id
     )
 
     await state.set_state(UserState.waiting_hemis_password)
+
+
+# =========================================================
+# 3-QADAM PAROL QABUL QILISH
+# =========================================================
+
 @router.message(UserState.waiting_hemis_password)
 async def process_hemis_password(message: types.Message, state: FSMContext):
 
-    user = await User.get_or_none(telegram_id=message.from_user.id)
-    language = user.language if user else LanguageEnum.UZ
+    data = await state.get_data()
 
-    await state.update_data(hemis_password=message.text.strip())
+    password = message.text.strip()
+    flow_msg = data.get("flow_message_id")
 
-    wait_msg = await message.answer(get_text("loading", language))
+    try:
+        await message.delete()
+    except:
+        pass
+
+    try:
+        await bot.delete_message(message.chat.id, flow_msg)
+    except:
+        pass
+
+    await state.update_data(
+        hemis_password=password
+    )
 
     session = create_session()
 
     csrf, captcha_bytes, cookies = get_hemis_captcha(session)
 
     if not csrf or not captcha_bytes:
-        await wait_msg.delete()
 
-        # user has not yet been mutated; pass it along so the menu
-        # reflects the correct HEMIS state (usually ``None`` at this point).
-        await message.answer(
-            get_text("error_loading", language),
-            reply_markup=get_profile_menu_keyboard(language, user)
-        )
-
+        await message.answer("❌ Captcha yuklanmadi")
         await state.clear()
         return
 
-    await wait_msg.delete()
-
-    # ⚠️ MUHIM: loginni qayta yozmaymiz
     await state.update_data(
         csrf=csrf,
         cookies=cookies
     )
 
-    photo = types.BufferedInputFile(captcha_bytes, filename="captcha.jpg")
+    photo = types.BufferedInputFile(
+        captcha_bytes,
+        filename="captcha.jpg"
+    )
 
-    await message.answer_photo(
-        photo=photo,
-        caption="Rasmda ko'rsatilgan kodni kiriting\n\n⚠️ 20 soniya ichida kiriting"
+    captcha_msg = await message.answer_photo(
+        photo,
+        caption="🧩 Captcha kodini kiriting:"
+    )
+
+    await state.update_data(
+        captcha_message_id=captcha_msg.message_id
     )
 
     await state.set_state(UserState.waiting_hemis_captcha)
+
+
+# =========================================================
+# 4-QADAM CAPTCHA QABUL QILISH
+# =========================================================
 
 @router.message(UserState.waiting_hemis_captcha)
 async def process_hemis_captcha(message: types.Message, state: FSMContext):
 
     user = await User.get_or_none(telegram_id=message.from_user.id)
+
     language = user.language if user else LanguageEnum.UZ
 
     data = await state.get_data()
@@ -128,53 +189,53 @@ async def process_hemis_captcha(message: types.Message, state: FSMContext):
     login = data.get("hemis_login")
     password = data.get("hemis_password")
     csrf = data.get("csrf")
-    cookies_dict = data.get("cookies", {})
+    cookies = data.get("cookies")
+    captcha_msg_id = data.get("captcha_message_id")
 
     captcha_code = message.text.strip()
 
-    wait_msg = await message.answer(get_text("loading", language))
+    try:
+        await message.delete()
+    except:
+        pass
+
+    try:
+        await bot.delete_message(message.chat.id, captcha_msg_id)
+    except:
+        pass
+
+    wait = await message.answer("⏳ HEMIS ga ulanmoqda...")
 
     session = create_session()
 
-    # Cookie qayta tiklash to the correct domain
-    for k, v in cookies_dict.items():
+    for k, v in cookies.items():
         session.cookies.set(k, v, domain="student.ukiu.uz")
 
-    # HEMIS LOGIN
-    is_valid, error_message = hemis_login(
+    is_valid, error = hemis_login(
         session,
         csrf,
         login,
         password,
-        captcha_code
+        captcha_code,
     )
 
     if not is_valid:
-        await wait_msg.delete()
 
-        error_text = error_message or get_text("hemis_login_error", language)
+        await wait.edit_text("❌ Login yoki captcha xato")
 
-        await message.answer(
-            f"{error_text}\n\nQaytadan urinib ko'ring",
-            reply_markup=get_back_to_menu_keyboard(language)
-        )
+        await state.clear()
 
-        await state.set_state(UserState.waiting_hemis_captcha)
         return
 
-    # 🔥 MUHIM: DASHBOARDNI OCHIB SESSIONNI AKTIV QILAMIZ
     session.get(DASHBOARD_URL)
 
-    # LOGIN SUCCESS
     user.hemis_login = login
     user.hemis_password = password
 
     try:
-        # 0️⃣ UPDATE CACHED WEEK ID (now that session is authenticated)
-        logging.info("Updating cached week ID with authenticated session...")
+
         update_cached_week_id(session)
 
-        # 1️⃣ GURUHNI OLISH
         resp = session.get(DASHBOARD_URL)
 
         soup = BeautifulSoup(resp.text, "html.parser")
@@ -188,18 +249,17 @@ async def process_hemis_captcha(message: types.Message, state: FSMContext):
 
         if not group_name:
 
-            patterns = [
-                r'Guruh:\s*([A-Z0-9\-]+)',
-                r'Group:\s*([A-Z0-9\-]+)'
-            ]
+            for pattern in [
+                r"Guruh:\s*([A-Z0-9\-]+)",
+                r"Group:\s*([A-Z0-9\-]+)",
+            ]:
 
-            for pattern in patterns:
                 match = re.search(pattern, resp.text)
+
                 if match:
                     group_name = match.group(1).strip()
                     break
 
-        # 2️⃣ GROUP DB GA YOZISH
         if group_name:
 
             group, _ = await Group.get_or_create(
@@ -210,15 +270,13 @@ async def process_hemis_captcha(message: types.Message, state: FSMContext):
 
         await user.save()
 
-        # 3️⃣ JADVALNI OLISH
         week = await get_current_week()
 
         schedule_data = fetch_schedule(
             session,
-            str(week.week_number)
+            str(week.week_number),
         )
 
-        # 4️⃣ DB GA YOZISH
         for item in schedule_data:
 
             await Schedule.get_or_create(
@@ -231,50 +289,72 @@ async def process_hemis_captcha(message: types.Message, state: FSMContext):
                     "teacher": item.get("teacher"),
                     "room": item.get("room"),
                     "lesson_type": item.get("lesson_type"),
-                    "lesson_time": item.get("lesson_time")
-                }
+                    "lesson_time": item.get("lesson_time"),
+                },
             )
 
     except Exception as e:
-        logging.error(f"HEMIS caching error: {e}")
 
-    await wait_msg.delete()
+        logger.error(f"HEMIS caching xatoligi: {e}")
+
+    await wait.delete()
+
+    user = await User.get_or_none(
+        telegram_id=message.from_user.id
+    ).prefetch_related("group")
 
     await message.answer(
-        get_text("hemis_connected", language),
-        reply_markup=get_profile_menu_keyboard(language, user)
+        "✅ HEMIS muvaffaqiyatli ulandi",
+        reply_markup=get_profile_menu_keyboard(language, user),
+        parse_mode="HTML",
     )
 
     await state.clear()
 
+
+# =========================================================
+# HEMIS UZISH
+# =========================================================
 
 @router.callback_query(F.data == "disconnect_hemis")
 async def disconnect_hemis(callback: types.CallbackQuery):
-    """Disconnect HEMIS account"""
+
     await callback.answer()
-    
-    user = await User.get_or_none(telegram_id=callback.from_user.id)
+
+    user = await User.get_or_none(
+        telegram_id=callback.from_user.id
+    )
+
     language = user.language if user else LanguageEnum.UZ
-    
-    if user:
-        user.hemis_login = None
-        user.hemis_password = None
-        await user.save(update_fields=["hemis_login", "hemis_password"])
-    
-    # user object has been cleared of credentials, pass ``user`` so
-    # the keyboard renders the "connect" button again (it's allowed to be
-    # ``None``).
+
+    await User.filter(
+        telegram_id=callback.from_user.id
+    ).update(
+        hemis_login=None,
+        hemis_password=None,
+        group_id=None,
+        reminder_enabled=False,
+    )
+
+    user = await User.get_or_none(
+        telegram_id=callback.from_user.id
+    )
+
     await callback.message.edit_text(
         get_text("hemis_disconnected", language),
-        reply_markup=get_profile_menu_keyboard(language, user)
+        reply_markup=get_profile_menu_keyboard(language, user),
     )
 
 
+
+# ---------------------------------------------------------------------------
+# Orqaga
+# ---------------------------------------------------------------------------
+
 @router.callback_query(F.data == "back_to_menu")
 async def back_to_menu(callback: types.CallbackQuery, state: FSMContext):
-    """Go back to main menu"""
     await callback.answer()
     await state.clear()
-    
+
     from handlers.users.start import cmd_start
     await cmd_start(callback.message)

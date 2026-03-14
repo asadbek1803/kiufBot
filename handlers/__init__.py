@@ -5,7 +5,7 @@ from filters import ChatTypeFilter
 
 
 def setup_routers() -> Router:
-    from .users import admin, start, help, language, menu, schedule, profile
+    from .users import admin, start, help, language, menu, schedule, profile, reminders
     from .errors import error_handler
 
     router = Router()
@@ -22,6 +22,6 @@ def setup_routers() -> Router:
     schedule.router.callback_query.filter(ChatTypeFilter(chat_types=[ChatType.PRIVATE]))
     profile.router.callback_query.filter(ChatTypeFilter(chat_types=[ChatType.PRIVATE]))
 
-    router.include_routers(admin.router, start.router, help.router, language.router, menu.router, schedule.router, profile.router, error_handler.router)
+    router.include_routers(admin.router, start.router, help.router, reminders.router, language.router, menu.router, schedule.router, profile.router, error_handler.router)
 
     return router

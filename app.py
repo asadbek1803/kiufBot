@@ -10,7 +10,9 @@ from aiogram.client.session.middlewares.request_logging import logger
 from aiogram.enums import ChatType
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums.parse_mode import ParseMode
-
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from tasks.cleanup import delete_old_schedules
+from tasks.reminder import send_daily_reminders
 
 
 def setup_handlers(dispatcher: Dispatcher) -> None:
@@ -64,6 +66,32 @@ async def aiogram_on_startup_polling(dispatcher: Dispatcher, bot: Bot) -> None:
     await setup_aiogram(bot=bot, dispatcher=dispatcher)
     await on_startup_notify(bot=bot)
     await set_default_commands(bot=bot)
+    logger.info("Scheduler ishga tushdi...")
+    scheduler = AsyncIOScheduler(timezone="Asia/Tashkent")
+ 
+    # Har kuni soat 03:00 da eski jadvallarni o'chiradi
+    scheduler.add_job(
+        delete_old_schedules,
+        trigger="cron",
+        hour=3,
+        minute=0,
+        id="cleanup_old_schedules",
+        replace_existing=True,
+    )
+ 
+
+    # Har kuni 20:00 — eslatma yuboriladi
+    scheduler.add_job(
+        send_daily_reminders,
+        trigger="cron",
+        hour=20,
+        minute=0,
+        id="daily_reminders",
+        replace_existing=True,
+    )
+ 
+    scheduler.start()
+    
 
 
 async def aiogram_on_shutdown_polling(dispatcher: Dispatcher, bot: Bot):

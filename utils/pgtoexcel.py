@@ -1,34 +1,90 @@
 import openpyxl
-from openpyxl.styles import Font
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 
 
 async def export_to_excel(data, headings, filepath):
-    """
-    Exports data from PostgreSQL to an Excel spreadsheet using psycopg2.
-
-    Arguments:
-    connection - an open psycopg2 (this function does not close the connection)
-    query_string - SQL to get data
-    headings - list of strings to use as column headings
-    filepath - path and filename of the Excel file
-
-    psycopg2 and file handling errors bubble up to calling code.
-    """
 
     wb = openpyxl.Workbook()
     sheet = wb.active
+    sheet.title = "Data"
 
-    sheet.row_dimensions[1].font = Font(bold=True)
+    # =========================
+    # STYLE
+    # =========================
 
-    # Spreadsheet row and column indexes start at 1,
-    # so we use "start = 1" in enumerate, so
-    # we don't need to add 1 to the indexes.
+    header_font = Font(bold=True, color="FFFFFF")
+
+    header_fill = PatternFill(
+        start_color="4F81BD",
+        end_color="4F81BD",
+        fill_type="solid"
+    )
+
+    border = Border(
+        left=Side(style="thin"),
+        right=Side(style="thin"),
+        top=Side(style="thin"),
+        bottom=Side(style="thin")
+    )
+
+    center_align = Alignment(horizontal="center", vertical="center")
+
+    # =========================
+    # HEADER
+    # =========================
+
     for colno, heading in enumerate(headings, start=1):
-        sheet.cell(row=1, column=colno).value = heading
 
-    # This time we use "start = 2" to skip the heading row.
+        cell = sheet.cell(row=1, column=colno)
+
+        cell.value = heading
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.border = border
+        cell.alignment = center_align
+
+    # =========================
+    # DATA
+    # =========================
+
     for rowno, row in enumerate(data, start=2):
+
         for colno, cell_value in enumerate(row, start=1):
-            sheet.cell(row=rowno, column=colno).value = cell_value
+
+            cell = sheet.cell(row=rowno, column=colno)
+
+            cell.value = cell_value
+            cell.border = border
+            cell.alignment = Alignment(vertical="center")
+
+    # =========================
+    # AUTO COLUMN WIDTH
+    # =========================
+
+    for column_cells in sheet.columns:
+
+        length = 0
+        column = column_cells[0].column_letter
+
+        for cell in column_cells:
+            try:
+                if cell.value:
+                    length = max(length, len(str(cell.value)))
+            except:
+                pass
+
+        sheet.column_dimensions[column].width = length + 3
+
+    # =========================
+    # FREEZE HEADER
+    # =========================
+
+    sheet.freeze_panes = "A2"
+
+    # =========================
+    # FILTER
+    # =========================
+
+    sheet.auto_filter.ref = sheet.dimensions
 
     wb.save(filepath)

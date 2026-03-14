@@ -14,14 +14,15 @@ class User(Model):
     phone_number = fields.CharField(max_length=20, null=True)
 
     language = fields.CharEnumField(LanguageEnum, default=LanguageEnum.UZ)
-
+    reminder_enabled = fields.BooleanField(default=False)
     hemis_login = fields.CharField(max_length=100, null=True)
     hemis_password = fields.CharField(max_length=100, null=True)
 
     group: fields.ForeignKeyRelation["Group"] = fields.ForeignKeyField(
         "models.Group",
         related_name="users",
-        null=True
+        null=True,
+        source_field="group_id"
     )
 
     created_at = fields.DatetimeField(auto_now_add=True)

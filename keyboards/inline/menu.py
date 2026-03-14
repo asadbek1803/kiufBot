@@ -163,62 +163,37 @@ def get_admission_submenu_keyboard(language: LanguageEnum = LanguageEnum.UZ) -> 
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-
 def get_schedule_menu_keyboard(language: LanguageEnum = LanguageEnum.UZ) -> InlineKeyboardMarkup:
-    """Get schedule menu keyboard"""
+    """Asosiy schedule menyu — update tugmasi yo'q"""
     keyboard = [
-        [
-            InlineKeyboardButton(
-                text=get_text("btn_today_schedule", language),
-                callback_data="today_schedule"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                text=get_text("btn_week_schedule", language),
-                callback_data="week_schedule"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                text=get_text("btn_update_schedule", language),
-                callback_data="update_schedule"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                text=get_text("btn_back", language),
-                callback_data="back_to_menu"
-            )
-        ]
+        [InlineKeyboardButton(
+            text=get_text("btn_today_schedule", language),
+            callback_data="today_schedule"
+        )],
+        [InlineKeyboardButton(
+            text=get_text("btn_week_schedule", language),
+            callback_data="week_schedule"
+        )],
+        [InlineKeyboardButton(
+            text=get_text("btn_back", language),
+            callback_data="back_to_menu"
+        )],
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
 def get_week_pagination_keyboard(language: LanguageEnum = LanguageEnum.UZ, week_id: str = None) -> InlineKeyboardMarkup:
-    """Get keyboard with week pagination buttons (previous/next).
-    
-    Shows date ranges on buttons for better UX.
-    
-    Args:
-        language (LanguageEnum): Language for button text.
-        week_id (str): Current week ID for navigation. If provided, enables prev/next buttons.
-    
-    Returns:
-        InlineKeyboardMarkup: Keyboard with pagination and back button.
-    """
+    """Haftalik jadval — pagination + update tugmasi bor"""
     from services.schedule_service import get_prev_week_id, get_next_week_id, format_week_date_range
-    
+
     keyboard = []
-    
+
     if week_id:
         prev_week = get_prev_week_id(week_id)
         next_week = get_next_week_id(week_id)
-        
-        # Get date ranges for button labels
         prev_date_range = format_week_date_range(prev_week, language)
         next_date_range = format_week_date_range(next_week, language)
-        
+
         keyboard.append([
             InlineKeyboardButton(
                 text=f"⬅️ {prev_date_range}",
@@ -227,40 +202,54 @@ def get_week_pagination_keyboard(language: LanguageEnum = LanguageEnum.UZ, week_
             InlineKeyboardButton(
                 text=f"{next_date_range} ➡️",
                 callback_data=f"select_week:{next_week}"
+            ),
+        ])
+
+        # ✅ week_id ni callback data ga qo'shamiz
+        keyboard.append([
+            InlineKeyboardButton(
+                text=get_text("btn_update_schedule", language),
+                callback_data=f"update_schedule:{week_id}"
             )
         ])
-    
+
     keyboard.append([
         InlineKeyboardButton(
             text=get_text("btn_back", language),
             callback_data="menu_schedule"
         )
     ])
-    
+
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from utils.i18n import get_text
+
+
 def get_profile_menu_keyboard(language, user=None):
-    """Return inline keyboard for the profile submenu.
-
-    * If ``user`` is provided and has ``hemis_login`` set, show a
-      "disconnect" button, otherwise show a "connect" button.
-    * Buttons are translated using :func:`~utils.i18n.get_text` so the
-      language parameter is respected.
-
-    ``user`` may be ``None`` when the caller doesn't yet have the
-    database object; the function behaves gracefully in that case.
-    """
-
     buttons: list[list[InlineKeyboardButton]] = []
 
-    if user and getattr(user, "hemis_login", None):
+    hemis_connected = user and getattr(user, "hemis_login", None)
+
+    # --- HEMIS tugmasi ---
+    if hemis_connected:
         buttons.append([
             InlineKeyboardButton(
                 text=get_text("btn_disconnect_hemis", language),
                 callback_data="disconnect_hemis"
             )
         ])
+
+        # --- Eslatma tugmasi — FAQAT HEMIS ulangan bo'lsa ko'rinadi ---
+        reminder_enabled = getattr(user, "reminder_enabled", False)
+        buttons.append([
+            InlineKeyboardButton(
+                text=get_text("btn_reminder_disable" if reminder_enabled else "btn_reminder_enable", language),
+                callback_data="reminder_disable" if reminder_enabled else "reminder_enable"
+            )
+        ])
+
     else:
         buttons.append([
             InlineKeyboardButton(
@@ -269,6 +258,7 @@ def get_profile_menu_keyboard(language, user=None):
             )
         ])
 
+    # --- Orqaga ---
     buttons.append([
         InlineKeyboardButton(
             text=get_text("btn_back", language),
@@ -277,3 +267,12 @@ def get_profile_menu_keyboard(language, user=None):
     ])
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_back_to_menu_keyboard(language):
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(
+            text=get_text("btn_back", language),
+            callback_data="back_to_menu"
+        )
+    ]])

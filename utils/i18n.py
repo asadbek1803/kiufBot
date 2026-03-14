@@ -5,6 +5,38 @@ from schemas.language import LanguageEnum
 
 # Translation dictionary
 TRANSLATIONS: Dict[str, Dict[LanguageEnum, str]] = {
+    
+    "btn_reminder_enable": {
+        "uz": "🔔 Eslatmani yoqish",
+        "ru": "🔔 Включить напоминание",
+        "en": "🔔 Enable reminder",
+    },
+    "btn_reminder_disable": {
+        "uz": "🔕 Eslatmani o'chirish",
+        "ru": "🔕 Отключить напоминание",
+        "en": "🔕 Disable reminder",
+    },
+ 
+    # --- Eslatma holati xabarlari ---
+    "reminder_enabled_text": {
+        "uz": "✅ Eslatma yoqildi!\n\nHar kuni soat <b>20:00</b> da ertangi dars jadvalingiz yuboriladi.",
+        "ru": "✅ Напоминание включено!\n\nКаждый день в <b>20:00</b> будет отправляться расписание на завтра.",
+        "en": "✅ Reminder enabled!\n\nYou will receive tomorrow's schedule every day at <b>20:00</b>.",
+    },
+    "reminder_disabled_text": {
+        "uz": "🔕 Eslatma o'chirildi.",
+        "ru": "🔕 Напоминание отключено.",
+        "en": "🔕 Reminder disabled.",
+    },
+ 
+    # --- Reminder xabar sarlavhasi (tasks/reminder.py da ishlatiladi) ---
+    "reminder_title": {
+        "uz": "Ertangi dars jadval",
+        "ru": "Расписание на завтра",
+        "en": "Tomorrow's schedule",
+    },
+    
+    
     # Menu texts
     "main_menu": {
         LanguageEnum.UZ: "🏛️ Asosiy menyu",
@@ -814,6 +846,11 @@ Please, write your message:""",
         LanguageEnum.EN: "✅ Group successfully saved!",
         LanguageEnum.RU: "✅ Группа успешно сохранена!",
     },
+    "enter_captcha": {
+        LanguageEnum.UZ: "🖼️ Iltimos, quyidagi rasmda ko'rsatilgan kodni kiriting:",
+        LanguageEnum.EN: "🖼️ Please enter the code shown in the image below:",
+        LanguageEnum.RU: "🖼️ Пожалуйста, введите код, указанный на изображении ниже:",
+    }
 }
 
 
